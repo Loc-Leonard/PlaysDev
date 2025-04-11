@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CPU Load</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 50px; }
+        #cpu-load { font-size: 3em; color: #d35400; }
+    </style>
+</head>
+<body>
+    <h1>Загрузка CPU в реальном времени</h1>
+    <div id="cpu">0%</div>
+    <script>
+        async function updateCpuLoad() {
+            const response = await fetch('/cpu');
+            document.getElementById('cpu').textContent = await response.text();
+            setTimeout(updateCpuLoad, 2000);
+        }
+        updateCpuLoad();
+    </script>
+</body>
+</html>

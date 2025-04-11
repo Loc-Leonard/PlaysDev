@@ -1,0 +1,29 @@
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "443:443"
+    volumes:
+      - ./www:/usr/share/nginx/html  # Монтируем статику из папки www
+      - ./nginx/ssl:/etc/nginx/ssl   # Монтируем SSL сертификаты (если есть)
+    restart: unless-stopped
+    depends_on:
+      - apache
+
+  apache:
+    build:
+      context: ./apache
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - ./www:/usr/local/apache2/htdocs  # Монтируем статику в Apache
+    restart: unless-stopped
+
+# Если нужно подключение между контейнерами, добавьте network
+networks:
+  default:
+    name: playsdev_network
+    driver: bridge

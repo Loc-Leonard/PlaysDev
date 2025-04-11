@@ -1,127 +1,18 @@
-upstream redblue {
-    server 127.0.0.1:8001;
-    server 127.0.0.1:8002;
-    least_conn;
-}
-
 server {
-    listen 8001;
+    listen 443 ssl;
     server_name localhost;
-    root /var/www/red;
-    index index.html;
+
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+
     location / {
+        root /usr/share/nginx/html;
+        index index.html;
         try_files $uri $uri/ =404;
     }
-}
 
-server {
-    listen 8002;
-    server_name localhost;
-    root /var/www/blue;
-    index index.html;
-    location / {
-        try_files $uri $uri/ =404;
-    }
-}
-
-server {
-    listen 80;
-    server_name localhost;
-    root /var/www/html;
-    index index.html;
-
-    # Статические страницы
-    location / {
-        try_files $uri $uri/ =404;
-    }
-    location =/secondpage {
-	root /var/www/html;
-	try_files /secondpage.html =404;
-	add_header Content-Type "text/html; charset=utf-8";
-	default_type text/html;
-    }
-    location ~* ^/image1/test.jpg$ {
-    	alias /var/www/html/image1/test_flipped.jpg;
-    }
-
-# Обычная отдача PNG
-    location ~* ^/image2/(.*\.png)$ {
-        try_files /image1/$1 =404;  
-        add_header Cache-Control "public, max-age=3600";
-    }
-
-    location ~* ^/resize/(\d+)x(\d+)/(.*\.(jpg|png))$ {
-    	set $width $1;
-    	set $height $2;
-    	set $image $3;
-    
-    	root /var/www;
-    	image_filter resize $width $height;
-    	image_filter_buffer 10M;
-    	try_files /$image =404;
-    }
-
-
-    # Отдача музыки
-    location /music {
-        alias /var/www/html/track.mp3;
-        add_header Content-Disposition 'attachment; filename="track.mp3"';
-        types { audio/mpeg mp3; }
-    }
-
-    # Балансировка
-    location /redblue {
-        proxy_pass http://redblue/;
-	proxy_redirect off;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    # PHP обработчик
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    # Внешний прокси
-    location /external {
-        proxy_pass http://example.com/;
-        proxy_set_header Host $host;
-    }
-
-    # Мониторинг CPU
-    location = /status {
-        default_type text/html;
-        content_by_lua_block {
-            ngx.say([[
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>CPU Status</title>
-                <meta http-equiv="refresh" content="1">
-                <style>
-                    body { font-family: Arial; text-align: center; padding: 50px; }
-                    .cpu-value { font-size: 48px; color: #e74c3c; margin: 20px; }
-                </style>
-            </head>
-            <body>
-                <h1>Загрузка CPU</h1>
-                <div class="cpu-value">]])
-            
-            local handle = io.popen("mpstat 1 1 | awk '/Average:/ {print 100 - $12}'")
-            local cpu = handle:read("*a")
-            handle:close()
-            
-            ngx.say(cpu .. "%")
-            ngx.say([[
-                </div>
-                <small>Обновляется каждую секунду</small>
-            </body>
-            </html>
-            ]])
-        }
+    # Добавьте проксирование к Apache если нужно
+    location /apache/ {
+        proxy_pass http://apache:80/;
     }
 }
